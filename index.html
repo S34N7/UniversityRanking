@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniRank Global - 全球大学排名整合平台</title>
+    
+    <!-- GitHub Pages 基础路径（如果使用自定义域名，可以删除） -->
+    <base href="./">
+    
+    <meta name="description" content="整合QS、THE、U.S. News、ARWU四大权威大学排名，支持自定义算法权重">
+    
+    <!-- Tailwind CDN（GitHub Pages 支持） -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 系统字体（避免 Google Fonts 加载问题） -->
+    <style>
+        @font-face {
+            font-family: 'Inter';
+            src: local('Inter'), local('Helvetica Neue'), local('Arial'), local('Microsoft YaHei');
+        }
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        .mono {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+        
+        /* 校徽样式 */
+        .university-logo {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: white;
+            padding: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .university-logo-fallback {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        /* 加载动画 */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* 其他原有样式... */
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+    
+    <!-- 加载状态 -->
+    <div id="initialLoading" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+        <p class="text-slate-600" id="loadingText">加载数据中...</p>
+    </div>
+
+    <!-- 原有导航和内容结构... -->
+    <nav class="fixed top-0 w-full z-40 glass border-b border-slate-200/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
+                        U
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold gradient-text block leading-tight">UniRank</span>
+                        <span class="text-xs text-slate-500">Global Rankings</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button onclick="switchLanguage()" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition text-sm font-medium text-slate-600 flex items-center gap-2">
+                        <span id="langSwitch">English</span>
+                    </button>
+                    <button onclick="toggleAlgorithmPanel()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
+                        自定义权重
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                <div class="text-2xl font-bold text-indigo-600" id="statTotal">-</div>
+                <div class="text-sm text-slate-600">收录大学</div>
+            </div>
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                <div class="text-2xl font-bold text-blue-600">4</div>
+                <div class="text-sm text-slate-600">排名系统</div>
+            </div>
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                <div class="text-2xl font-bold text-purple-600" id="statSubjects">-</div>
+                <div class="text-sm text-slate-600">专业领域</div>
+            </div>
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                <div class="text-2xl font-bold text-emerald-600" id="statRegions">-</div>
+                <div class="text-sm text-slate-600">覆盖地区</div>
+            </div>
+        </div>
+
+        <!-- 搜索和筛选 -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-col md:flex-row gap-4">
+            <div class="flex-1 relative">
+                <input type="text" id="searchInput" placeholder="搜索大学名称..." 
+                    class="w-full px-4 py-3 pl-12 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    oninput="filterUniversities()">
+                <svg class="absolute left-4 top-3.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <select id="regionFilter" onchange="filterUniversities()" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="all">全部地区</option>
+                <option value="USA">🇺🇸 美国</option>
+                <option value="UK">🇬🇧 英国</option>
+                <option value="Asia">🌏 亚洲</option>
+                <option value="Europe">🇪🇺 欧洲</option>
+            </select>
+        </div>
+
+        <!-- 排名表格 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-16">#</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">大学</th>
+                            <th class="px-3 py-3 text-center text-xs font-bold text-blue-600 uppercase w-20">QS</th>
+                            <th class="px-3 py-3 text-center text-xs font-bold text-pink-600 uppercase w-20">THE</th>
+                            <th class="px-3 py-3 text-center text-xs font-bold text-emerald-600 uppercase w-24">U.S. News</th>
+                            <th class="px-3 py-3 text-center text-xs font-bold text-amber-600 uppercase w-20">ARWU</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-40">综合得分</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase w-24">地区</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankingTableBody" class="divide-y divide-slate-200">
+                        <!-- 动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- 算法面板（右侧滑出） -->
+    <div id="algorithmPanel" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm">
+        <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto">
+            <!-- 原有算法面板内容... -->
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-xl font-bold">算法配置</h2>
+                <button onclick="toggleAlgorithmPanel()" class="p-2 hover:bg-slate-100 rounded-lg">
+                    <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-6" id="weightControls">
+                <!-- 动态生成权重控制 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 主逻辑脚本 -->
+    <script type="module">
+        // 全局状态
+        let currentLang = 'zh';
+        let currentWeights = { qs: 30, the: 25, usnews: 25, arwu: 20 };
+        let universitiesData = [];
+        let subjectsData = {};
+        
+        // 翻译
+        const translations = {
+            zh: { loading: "加载数据中...", search: "搜索大学名称...", overall: "综合排名" },
+            en: { loading: "Loading data...", search: "Search universities...", overall: "Overall Rankings" }
+        };
+        
+        // 初始化
+        async function init() {
+            try {
+                // 加载数据
+                const [uniResponse, subResponse] = await Promise.all([
+                    fetch('/UniversityRanking/data/universities.json?v=1.0.0'),
+                    fetch('/UniversityRanking/data/subjects.json?v=1.0.0')
+                ]);
+                
+                if (!uniResponse.ok || !subResponse.ok) {
+                    throw new Error('Failed to load data');
+                }
+                
+                const uniData = await uniResponse.json();
+                const subData = await subResponse.json();
+                
+                universitiesData = uniData.universities;
+                subjectsData = subData.subjects;
+                
+                // 从 JSON 读取默认权重
+                if (uniData.rankingSystems) {
+                    Object.keys(uniData.rankingSystems).forEach(key => {
+                        if (uniData.rankingSystems[key].weight !== undefined) {
+                            currentWeights[key] = uniData.rankingSystems[key].weight;
+                        }
+                    });
+                }
+                
+                // 预加载校徽
+                preloadLogos(universitiesData);
+                
+                // 更新统计
+                document.getElementById('statTotal').textContent = universitiesData.length;
+                document.getElementById('statSubjects').textContent = Object.keys(subjectsData).length;
+                const regions = new Set(universitiesData.map(u => u.region));
+                document.getElementById('statRegions').textContent = regions.size;
+                
+                // 渲染
+                renderWeightControls(uniData.rankingSystems);
+                recalculateRanking();
+                
+                // 隐藏加载
+                document.getElementById('initialLoading').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('loadingText').textContent = '加载失败，请刷新页面重试';
+            }
+        }
+        
+        function preloadLogos(universities) {
+            universities.forEach(uni => {
+                if (uni.logo) {
+                    const img = new Image();
+                    img.src = '/UniversityRanking/assets/logos/' + uni.logo;
+                }
+            });
+        }
+        
+        function renderWeightControls(systems) {
+            const container = document.getElementById('weightControls');
+            const colors = {
+                qs: 'blue',
+                the: 'pink',
+                usnews: 'emerald',
+                arwu: 'amber'
+            };
+            
+            container.innerHTML = Object.entries(systems).map(([key, system]) => `
+                <div class="bg-${colors[key]}-50 rounded-xl p-4 border border-${colors[key]}-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-1 bg-${colors[key]}-100 text-${colors[key]}-700 rounded text-xs font-bold uppercase">${key}</span>
+                            <span class="font-semibold text-slate-700">${currentLang === 'zh' ? system.name : key}</span>
+                        </div>
+                        <span class="text-${colors[key]}-600 font-bold text-lg" id="${key}Value">${currentWeights[key]}%</span>
+                    </div>
+                    <input type="range" id="${key}Weight" min="0" max="100" value="${currentWeights[key]}" 
+                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                        style="accent-color: var(--color-${colors[key]})"
+                        oninput="updateWeight('${key}', this.value)">
+                </div>
+            `).join('') + `
+                <button onclick="recalculateRanking()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">
+                    重新计算排名
+                </button>
+            `;
+        }
+        
+        window.updateWeight = function(system, value) {
+            currentWeights[system] = parseInt(value);
+            document.getElementById(system + 'Value').textContent = value + '%';
+        };
+        
+        function normalizeRank(rank) {
+            if (!rank || rank > 100) return 0;
+            return 100 * Math.exp(-rank / 25);
+        }
+        
+        window.recalculateRanking = function() {
+            const ranked = universitiesData.map(uni => {
+                const scores = {
+                    qs: normalizeRank(uni.qs) * currentWeights.qs,
+                    the: normalizeRank(uni.the) * currentWeights.the,
+                    usnews: normalizeRank(uni.usnews) * currentWeights.usnews,
+                    arwu: normalizeRank(uni.arwu) * currentWeights.arwu
+                };
+                const totalWeight = Object.values(currentWeights).reduce((a, b) => a + b, 0);
+                const composite = Object.values(scores).reduce((a, b) => a + b, 0) / (totalWeight || 1);
+                
+                return { ...uni, compositeScore: composite.toFixed(2), scores };
+            }).sort((a, b) => b.compositeScore - a.compositeScore);
+            
+            renderTable(ranked);
+            toggleAlgorithmPanel();
+        };
+        
+        function renderTable(data) {
+            const tbody = document.getElementById('rankingTableBody');
+            tbody.innerHTML = data.map((uni, index) => {
+                const rank = index + 1;
+                const displayName = currentLang === 'zh' ? uni.nameCN : uni.name;
+                
+                // 校徽 HTML
+                let logoHtml;
+                if (uni.logo) {
+                    logoHtml = `<img src="./assets/logos/${uni.logo}" 
+                        alt="${displayName}" 
+                        class="university-logo"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="university-logo-fallback hidden" style="background: ${uni.color || '#6366f1'}">
+                            ${uni.id ? uni.id.substring(0, 2).toUpperCase() : 'UN'}
+                        </div>`;
+                } else {
+                    logoHtml = `<div class="university-logo-fallback" style="background: ${uni.color || '#6366f1'}">
+                        ${uni.id ? uni.id.substring(0, 2).toUpperCase() : 'UN'}
+                    </div>`;
+                }
+                
+                // 排名徽章
+                let rankBadge;
+                if (rank === 1) rankBadge = '<span class="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-white flex items-center justify-center font-bold shadow-md">1</span>';
+                else if (rank === 2) rankBadge = '<span class="w-8 h-8 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 text-white flex items-center justify-center font-bold shadow-md">2</span>';
+                else if (rank === 3) rankBadge = '<span class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white flex items-center justify-center font-bold shadow-md">3</span>';
+                else rankBadge = `<span class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm">${rank}</span>`;
+                
+                return `
+                    <tr class="hover:bg-slate-50 transition group">
+                        <td class="px-4 py-4 whitespace-nowrap">${rankBadge}</td>
+                        <td class="px-4 py-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="relative w-12 h-12 flex-shrink-0">
+                                    ${logoHtml}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-900 group-hover:text-indigo-600 transition">${displayName}</div>
+                                    <div class="text-xs text-slate-500">${uni.country}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-3 py-4 text-center"><span class="px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs font-semibold">${uni.qs || '-'}</span></td>
+                        <td class="px-3 py-4 text-center"><span class="px-2 py-1 rounded bg-pink-50 text-pink-700 text-xs font-semibold">${uni.the || '-'}</span></td>
+                        <td class="px-3 py-4 text-center"><span class="px-2 py-1 rounded bg-emerald-50 text-emerald-700 text-xs font-semibold">${uni.usnews || '-'}</span></td>
+                        <td class="px-3 py-4 text-center"><span class="px-2 py-1 rounded bg-amber-50 text-amber-700 text-xs font-semibold">${uni.arwu || '-'}</span></td>
+                        <td class="px-4 py-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500" style="width: ${uni.compositeScore}%"></div>
+                                </div>
+                                <span class="text-sm font-bold mono text-slate-700 w-12">${uni.compositeScore}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-4 text-center">
+                            <span class="px-3 py-1 rounded-full text-xs font-medium ${getRegionClass(uni.region)}">
+                                ${getRegionFlag(uni.region)}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function getRegionClass(region) {
+            const classes = {
+                'USA': 'bg-blue-100 text-blue-800',
+                'UK': 'bg-red-100 text-red-800',
+                'Asia': 'bg-amber-100 text-amber-800',
+                'Europe': 'bg-purple-100 text-purple-800'
+            };
+            return classes[region] || 'bg-slate-100 text-slate-800';
+        }
+        
+        function getRegionFlag(region) {
+            const flags = {
+                'USA': '🇺🇸 美国',
+                'UK': '🇬🇧 英国',
+                'Asia': '🌏 亚洲',
+                'Europe': '🇪🇺 欧洲'
+            };
+            return flags[region] || region;
+        }
+        
+        window.filterUniversities = function() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const region = document.getElementById('regionFilter').value;
+            
+            const filtered = universitiesData.filter(uni => {
+                const nameMatch = (currentLang === 'zh' ? uni.nameCN : uni.name).toLowerCase().includes(search);
+                const countryMatch = uni.country.toLowerCase().includes(search);
+                const regionMatch = region === 'all' || uni.region === region;
+                return (nameMatch || countryMatch) && regionMatch;
+            });
+            
+            const ranked = filtered.map(uni => ({
+                ...uni,
+                compositeScore: calculateScore(uni)
+            })).sort((a, b) => b.compositeScore - a.compositeScore);
+            
+            renderTable(ranked);
+        };
+        
+        function calculateScore(uni) {
+            const totalWeight = Object.values(currentWeights).reduce((a, b) => a + b, 0);
+            if (totalWeight === 0) return 0;
+            return (
+                normalizeRank(uni.qs) * currentWeights.qs +
+                normalizeRank(uni.the) * currentWeights.the +
+                normalizeRank(uni.usnews) * currentWeights.usnews +
+                normalizeRank(uni.arwu) * currentWeights.arwu
+            ) / totalWeight;
+        }
+        
+        window.toggleAlgorithmPanel = function() {
+            const panel = document.getElementById('algorithmPanel');
+            panel.classList.toggle('hidden');
+        };
+        
+        window.switchLanguage = function() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('langSwitch').textContent = currentLang === 'zh' ? 'English' : '中文';
+            document.getElementById('searchInput').placeholder = translations[currentLang].search;
+            recalculateRanking();
+        };
+        
+        // 启动
+        init();
+    </script>
+</body>
+</html>
