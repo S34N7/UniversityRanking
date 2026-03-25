@@ -177,8 +177,8 @@
             try {
                 const cacheBuster = '?v=' + Date.now();
                 const [uniResponse, subResponse] = await Promise.all([
-                    fetch('./data/universities.json' + cacheBuster),
-                    fetch('./data/subjects.json' + cacheBuster)
+                    fetch('/UniversityRanking/data/universities.json?v=' + Date.now())
+                    fetch('/UniversityRanking/data/subjects.json?v=' + Date.now())
                 ]);
                 
                 if (!uniResponse.ok || !subResponse.ok) {
