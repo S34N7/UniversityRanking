@@ -1,0 +1,44 @@
+{
+  "subjects": {
+    "engineering": {
+      "id": "engineering",
+      "name": "工程技术",
+      "nameEN": "Engineering & Technology",
+      "icon": "⚙️",
+      "description": "机械、电子、土木、化工等工程学科",
+      "descriptionEN": "Mechanical, Electrical, Civil, Chemical Engineering"
+    },
+    "cs": {
+      "id": "cs",
+      "name": "计算机科学",
+      "nameEN": "Computer Science",
+      "icon": "💻",
+      "description": "人工智能、软件工程、数据科学",
+      "descriptionEN": "AI, Software Engineering, Data Science"
+    },
+    "business": {
+      "id": "business",
+      "name": "商科经济",
+      "nameEN": "Business & Economics",
+      "icon": "📊",
+      "description": "金融、会计、管理、经济学",
+      "descriptionEN": "Finance, Accounting, Management, Economics"
+    },
+    "medicine": {
+      "id": "medicine",
+      "name": "生命科学",
+      "nameEN": "Life Sciences & Medicine",
+      "icon": "🔬",
+      "description": "医学、生物、药学、公共卫生",
+      "descriptionEN": "Medicine, Biology, Pharmacy, Public Health"
+    },
+    "arts": {
+      "id": "arts",
+      "name": "人文艺术",
+      "nameEN": "Arts & Humanities",
+      "icon": "🎨",
+      "description": "文学、历史、哲学、艺术",
+      "descriptionEN": "Literature, History, Philosophy, Arts"
+    }
+  }
+}
