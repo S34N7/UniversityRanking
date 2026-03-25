@@ -39,6 +39,46 @@
       "icon": "🎨",
       "description": "文学、历史、哲学、艺术",
       "descriptionEN": "Literature, History, Philosophy, Arts"
+    },
+    "physics": {
+      "id": "physics",
+      "name": "物理科学",
+      "nameEN": "Physical Sciences",
+      "icon": "⚛️",
+      "description": "物理、化学、天文、地球科学",
+      "descriptionEN": "Physics, Chemistry, Astronomy, Earth Sciences"
+    },
+    "social_science": {
+      "id": "social_science",
+      "name": "社会科学",
+      "nameEN": "Social Sciences",
+      "icon": "🌍",
+      "description": "政治、社会学、心理学、传播学",
+      "descriptionEN": "Politics, Sociology, Psychology, Communication"
+    },
+    "law": {
+      "id": "law",
+      "name": "法学",
+      "nameEN": "Law",
+      "icon": "⚖️",
+      "description": "法律、国际法、知识产权",
+      "descriptionEN": "Law, International Law, Intellectual Property"
+    },
+    "education": {
+      "id": "education",
+      "name": "教育学",
+      "nameEN": "Education",
+      "icon": "📚",
+      "description": "教育理论、教育管理、教育技术",
+      "descriptionEN": "Educational Theory, Administration, Technology"
+    },
+    "psychology": {
+      "id": "psychology",
+      "name": "心理学",
+      "nameEN": "Psychology",
+      "icon": "🧠",
+      "description": "临床、认知、发展、组织心理学",
+      "descriptionEN": "Clinical, Cognitive, Developmental, Organizational"
     }
   }
 }
