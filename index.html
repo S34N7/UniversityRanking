@@ -5,31 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UniRank Global - 全球大学排名整合平台</title>
     
-    <!-- GitHub Pages 基础路径（如果使用自定义域名，可以删除） -->
     <base href="./">
     
     <meta name="description" content="整合QS、THE、U.S. News、ARWU四大权威大学排名，支持自定义算法权重">
     
-    <!-- Tailwind CDN（GitHub Pages 支持） -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- 系统字体（避免 Google Fonts 加载问题） -->
     <style>
-        @font-face {
-            font-family: 'Inter';
-            src: local('Inter'), local('Helvetica Neue'), local('Arial'), local('Microsoft YaHei');
-        }
         * {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
         }
-        .mono {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-        }
-        
-        /* 校徽样式 */
         .university-logo {
             width: 48px;
             height: 48px;
@@ -51,8 +37,6 @@
             color: white;
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
-        
-        /* 加载动画 */
         .skeleton {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
@@ -62,8 +46,6 @@
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
-        
-        /* 其他原有样式... */
         .glass {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
@@ -78,26 +60,21 @@
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
     
-    <!-- 加载状态 -->
     <div id="initialLoading" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
         <p class="text-slate-600" id="loadingText">加载数据中...</p>
     </div>
 
-    <!-- 原有导航和内容结构... -->
     <nav class="fixed top-0 w-full z-40 glass border-b border-slate-200/50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                        U
-                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xl">U</div>
                     <div>
                         <span class="text-xl font-bold gradient-text block leading-tight">UniRank</span>
                         <span class="text-xs text-slate-500">Global Rankings</span>
                     </div>
                 </div>
-                
                 <div class="flex items-center space-x-4">
                     <button onclick="switchLanguage()" class="px-3 py-1.5 rounded-lg hover:bg-slate-100 transition text-sm font-medium text-slate-600 flex items-center gap-2">
                         <span id="langSwitch">English</span>
@@ -110,10 +87,7 @@
         </div>
     </nav>
 
-    <!-- 主要内容 -->
     <main class="pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        
-        <!-- 统计卡片 -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
                 <div class="text-2xl font-bold text-indigo-600" id="statTotal">-</div>
@@ -133,7 +107,6 @@
             </div>
         </div>
 
-        <!-- 搜索和筛选 -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-col md:flex-row gap-4">
             <div class="flex-1 relative">
                 <input type="text" id="searchInput" placeholder="搜索大学名称..." 
@@ -152,7 +125,6 @@
             </select>
         </div>
 
-        <!-- 排名表格 -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -169,17 +141,14 @@
                         </tr>
                     </thead>
                     <tbody id="rankingTableBody" class="divide-y divide-slate-200">
-                        <!-- 动态生成 -->
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
 
-    <!-- 算法面板（右侧滑出） -->
     <div id="algorithmPanel" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm">
         <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto">
-            <!-- 原有算法面板内容... -->
             <div class="p-6 border-b border-slate-200 flex justify-between items-center">
                 <h2 class="text-xl font-bold">算法配置</h2>
                 <button onclick="toggleAlgorithmPanel()" class="p-2 hover:bg-slate-100 rounded-lg">
@@ -189,32 +158,27 @@
                 </button>
             </div>
             <div class="p-6 space-y-6" id="weightControls">
-                <!-- 动态生成权重控制 -->
             </div>
         </div>
     </div>
 
-    <!-- 主逻辑脚本 -->
-    <script type="module">
-        // 全局状态
+    <script>
         let currentLang = 'zh';
         let currentWeights = { qs: 30, the: 25, usnews: 25, arwu: 20 };
         let universitiesData = [];
         let subjectsData = {};
         
-        // 翻译
         const translations = {
             zh: { loading: "加载数据中...", search: "搜索大学名称...", overall: "综合排名" },
             en: { loading: "Loading data...", search: "Search universities...", overall: "Overall Rankings" }
         };
         
-        // 初始化
         async function init() {
             try {
-                // 加载数据
+                const cacheBuster = '?v=' + Date.now();
                 const [uniResponse, subResponse] = await Promise.all([
-                    fetch('/UniversityRanking/data/universities.json?v=1.0.0'),
-                    fetch('/UniversityRanking/data/subjects.json?v=1.0.0')
+                    fetch('./data/universities.json' + cacheBuster),
+                    fetch('./data/subjects.json' + cacheBuster)
                 ]);
                 
                 if (!uniResponse.ok || !subResponse.ok) {
@@ -227,7 +191,6 @@
                 universitiesData = uniData.universities;
                 subjectsData = subData.subjects;
                 
-                // 从 JSON 读取默认权重
                 if (uniData.rankingSystems) {
                     Object.keys(uniData.rankingSystems).forEach(key => {
                         if (uniData.rankingSystems[key].weight !== undefined) {
@@ -236,20 +199,16 @@
                     });
                 }
                 
-                // 预加载校徽
                 preloadLogos(universitiesData);
                 
-                // 更新统计
                 document.getElementById('statTotal').textContent = universitiesData.length;
                 document.getElementById('statSubjects').textContent = Object.keys(subjectsData).length;
                 const regions = new Set(universitiesData.map(u => u.region));
                 document.getElementById('statRegions').textContent = regions.size;
                 
-                // 渲染
                 renderWeightControls(uniData.rankingSystems);
                 recalculateRanking();
                 
-                // 隐藏加载
                 document.getElementById('initialLoading').style.display = 'none';
                 
             } catch (error) {
@@ -262,32 +221,32 @@
             universities.forEach(uni => {
                 if (uni.logo) {
                     const img = new Image();
-                    img.src = '/UniversityRanking/assets/logos/' + uni.logo;
+                    img.src = './assets/logos/' + uni.logo;
                 }
             });
         }
         
         function renderWeightControls(systems) {
             const container = document.getElementById('weightControls');
-            const colors = {
-                qs: 'blue',
-                the: 'pink',
-                usnews: 'emerald',
-                arwu: 'amber'
+            const colorMap = {
+                qs: { bg: '#EFF6FF', border: '#DBEAFE', text: '#1E40AF' },
+                the: { bg: '#FDF2F8', border: '#FCE7F3', text: '#9D174D' },
+                usnews: { bg: '#ECFDF5', border: '#D1FAE5', text: '#065F46' },
+                arwu: { bg: '#FFFBEB', border: '#FEF3C7', text: '#92400E' }
             };
             
             container.innerHTML = Object.entries(systems).map(([key, system]) => `
-                <div class="bg-${colors[key]}-50 rounded-xl p-4 border border-${colors[key]}-100">
+                <div class="rounded-xl p-4 border" style="background: ${colorMap[key].bg}; border-color: ${colorMap[key].border}">
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center space-x-2">
-                            <span class="px-2 py-1 bg-${colors[key]}-100 text-${colors[key]}-700 rounded text-xs font-bold uppercase">${key}</span>
+                            <span class="px-2 py-1 rounded text-xs font-bold uppercase" style="background: ${colorMap[key].border}; color: ${colorMap[key].text}">${key}</span>
                             <span class="font-semibold text-slate-700">${currentLang === 'zh' ? system.name : key}</span>
                         </div>
-                        <span class="text-${colors[key]}-600 font-bold text-lg" id="${key}Value">${currentWeights[key]}%</span>
+                        <span class="font-bold text-lg" style="color: ${colorMap[key].text}" id="${key}Value">${currentWeights[key]}%</span>
                     </div>
                     <input type="range" id="${key}Weight" min="0" max="100" value="${currentWeights[key]}" 
                         class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                        style="accent-color: var(--color-${colors[key]})"
+                        style="accent-color: ${colorMap[key].text}"
                         oninput="updateWeight('${key}', this.value)">
                 </div>
             `).join('') + `
@@ -331,7 +290,6 @@
                 const rank = index + 1;
                 const displayName = currentLang === 'zh' ? uni.nameCN : uni.name;
                 
-                // 校徽 HTML
                 let logoHtml;
                 if (uni.logo) {
                     logoHtml = `<img src="./assets/logos/${uni.logo}" 
@@ -347,7 +305,6 @@
                     </div>`;
                 }
                 
-                // 排名徽章
                 let rankBadge;
                 if (rank === 1) rankBadge = '<span class="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-white flex items-center justify-center font-bold shadow-md">1</span>';
                 else if (rank === 2) rankBadge = '<span class="w-8 h-8 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 text-white flex items-center justify-center font-bold shadow-md">2</span>';
@@ -452,7 +409,6 @@
             recalculateRanking();
         };
         
-        // 启动
         init();
     </script>
 </body>
